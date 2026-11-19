@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тренажер</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="box">
+    <h2>Тренажер</h2>
+
+    <div id="settings">
+      <p class="label">Что тренируем:</p>
+      <div class="checks">
+        <label class="check">
+          <input type="checkbox" id="mulChk" checked>
+          <span class="mark"></span>
+          <span class="txt">
+            Умножение (×)
+          </span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="divChk" checked>
+          <span class="mark"></span>
+          <span class="txt">
+            Деление (÷)
+          </span>
+        </label>
+      </div>
+
+      <p class="label">Количество примеров:</p>
+      <select id="countSel">
+        <option value="5">5 примеров</option>
+        <option value="10" selected>10 примеров</option>
+        <option value="15">15 примеров</option>
+        <option value="20">20 примеров</option>
+      </select>
+
+      <button id="startBtn" type="button">Начать</button>
+      <div id="err"></div>
+    </div>
+
+    <div id="game" class="hidden">
+      <div class="progress">
+        Пример <span id="curEl">1</span> из <span id="limEl">10</span>
+      </div>
+      <div class="task" id="task">2 × 3 = ?</div>
+      <input id="answer" type="number" inputmode="numeric" placeholder="Ответ" autocomplete="off">
+      <button id="checkBtn" type="button">Проверить</button>
+      <div id="result"></div>
+      <div class="score">
+        Правильно: <span id="rightEl">0</span> из <span id="totalEl">0</span>
+      </div>
+    </div>
+
+    <div id="finished" class="hidden">
+      <div class="final">Готово!</div>
+      <div class="final-score">
+        Правильно: <span id="finalRight">0</span> из <span id="finalTotal">0</span>
+      </div>
+      <div class="final-msg" id="finalMsg"></div>
+      <button id="againBtn" type="button">Ещё раз</button>
+    </div>
+  </div>
+
+  <script>
+    const settingsEl = document.getElementById("settings");
+    const gameEl     = document.getElementById("game");
+    const finishedEl = document.getElementById("finished");
+    const mulChk     = document.getElementById("mulChk");
+    const divChk     = document.getElementById("divChk");
+    const countSel   = document.getElementById("countSel");
+    const startBtn   = document.getElementById("startBtn");
+    const errEl      = document.getElementById("err");
+    const taskEl     = document.getElementById("task");
+    const answerEl   = document.getElementById("answer");
+    const checkBtn   = document.getElementById("checkBtn");
+    const resultEl   = document.getElementById("result");
+    const curEl      = document.getElementById("curEl");
+    const limEl      = document.getElementById("limEl");
+    const rightEl    = document.getElementById("rightEl");
+    const totalEl    = document.getElementById("totalEl");
+    const finalRightEl = document.getElementById("finalRight");
+    const finalTotalEl = document.getElementById("finalTotal");
+    const finalMsgEl   = document.getElementById("finalMsg");
+    const againBtn     = document.getElementById("againBtn");
+
+    let ops = [], limit = 10, done = 0, right = 0, currentAnswer = null, checked = false;
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function newTask() {
+      const op = ops[rand(0, ops.length - 1)];
+      if (op === "*") {
+        const a = rand(2, 10), b = rand(2, 10);
+        currentAnswer = a * b;
+        taskEl.textContent = a + " × " + b + " = ?";
+      } else {
+        const b = rand(2, 10), ans = rand(2, 10);
+        currentAnswer = ans;
+        taskEl.textContent = (b * ans) + " ÷ " + b + " = ?";
+      }
+      answerEl.value = "";
+      resultEl.textContent = "";
+      resultEl.className = "";
+      checked = false;
+      checkBtn.textContent = "Проверить";
+      curEl.textContent = done + 1;
+      answerEl.focus();
+    }
+
+    function check() {
+      if (!checked) {
+        const raw = answerEl.value.trim();
+        if (raw === "") {
+          resultEl.textContent = "Введите ответ";
+          resultEl.className = "bad";
+          return;
+        }
+        done++;
+        if (Number(raw) === currentAnswer) {
+          right++;
+          resultEl.textContent = "Верно!";
+          resultEl.className = "ok";
+        } else {
+          resultEl.textContent = "Неверно. Ответ: " + currentAnswer;
+          resultEl.className = "bad";
+        }
+        rightEl.textContent = right;
+        totalEl.textContent = done;
+        checked = true;
+        answerEl.blur();
+        checkBtn.textContent = (done >= limit) ? "Результат" : "Дальше";
+      } else {
+        if (done >= limit) showFinished();
+        else newTask();
+      }
+    }
+
+    function startGame() {
+      ops = [];
+      if (mulChk.checked) ops.push("*");
+      if (divChk.checked) ops.push("/");
+      if (ops.length === 0) {
+        errEl.textContent = "Выберите хотя бы один тип";
+        errEl.className = "bad";
+        return;
+      }
+      errEl.textContent = "";
+      errEl.className = "";
+      limit = Number(countSel.value) || 10;
+      done = 0;
+      right = 0;
+      limEl.textContent = limit;
+      rightEl.textContent = 0;
+      totalEl.textContent = 0;
+      settingsEl.classList.add("hidden");
+      finishedEl.classList.add("hidden");
+      gameEl.classList.remove("hidden");
+      newTask();
+    }
+
+    function showFinished() {
+      gameEl.classList.add("hidden");
+      finishedEl.classList.remove("hidden");
+      finalRightEl.textContent = right;
+      finalTotalEl.textContent = limit;
+      const pct = right / limit;
+      if (pct === 1)        finalMsgEl.textContent = "Идеально! Все верно 🎉";
+      else if (pct >= 0.8)  finalMsgEl.textContent = "Отличный результат!";
+      else if (pct >= 0.5)  finalMsgEl.textContent = "Хорошо, но можно лучше";
+      else                  finalMsgEl.textContent = "Стоит повторить";
+    }
+
+    function backToSettings() {
+      finishedEl.classList.add("hidden");
+      gameEl.classList.add("hidden");
+      settingsEl.classList.remove("hidden");
+    }
+
+    startBtn.addEventListener("click", startGame);
+    checkBtn.addEventListener("click", check);
+    againBtn.addEventListener("click", backToSettings);
+    answerEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); check(); }
+    });
+  </script>
+</body>
+</html>
